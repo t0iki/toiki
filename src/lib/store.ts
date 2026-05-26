@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -151,13 +152,20 @@ export async function saveMeasurements(
   }
 }
 
-export async function saveMeasurementLabels(
+export async function saveMeasurementMeta(
   pageId: string,
   date: string,
-  labels: string[],
+  meta: { labels: string[]; note: string },
 ): Promise<void> {
   const fb = getFirebase();
   if (!fb) throw new Error("Firebase is not configured");
   const ref = doc(fb.db, ...pageDocPath(pageId), "measurements", date);
-  await setDoc(ref, { date, labels }, { merge: true });
+  // 空文字の note は保存しない（merge で削除はしないが、undefined にして列を作らない）
+  const trimmed = meta.note.trim();
+  const payload: Record<string, unknown> = {
+    date,
+    labels: meta.labels,
+    note: trimmed === "" ? deleteField() : trimmed,
+  };
+  await setDoc(ref, payload, { merge: true });
 }

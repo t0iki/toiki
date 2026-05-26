@@ -6,7 +6,7 @@ import type { Measurement } from "../types";
  * 実 CSV が手に入ったらここを直す前提。
  */
 const FIELD_ALIASES: Record<
-  keyof Omit<Measurement, "date" | "labels">,
+  keyof Omit<Measurement, "date" | "labels" | "note">,
   string[]
 > = {
   weightKg: ["体重(kg)", "体重", "Weight(kg)", "Weight", "weight"],

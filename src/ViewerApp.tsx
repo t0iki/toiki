@@ -47,7 +47,10 @@ export default function ViewerApp() {
       </div>
 
       <footer>
-        <div>{page.measurements.length} 件の測定値</div>
+        <div>
+          {page.measurements.length} 件の測定値
+          {progress.latestDate && ` · 最終更新 ${progress.latestDate}`}
+        </div>
       </footer>
     </div>
   );

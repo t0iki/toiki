@@ -10,6 +10,8 @@ export type Measurement = {
   boneKg?: number;
   /** "外食" / "チートデー" 等のタグ id */
   labels?: string[];
+  /** 一言メモ */
+  note?: string;
 };
 
 export type Goal = {

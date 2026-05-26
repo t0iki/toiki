@@ -25,6 +25,7 @@ type Row = {
   weightKg?: number;
   idealWeight?: number;
   labels?: string[];
+  note?: string;
   bodyFatPct?: number;
   bmi?: number;
   muscleKg?: number;
@@ -77,6 +78,7 @@ function buildRows(
           weightKg: m?.weightKg,
           idealWeight: ideal,
           labels: m?.labels,
+          note: m?.note,
           bodyFatPct: m?.bodyFatPct,
           bmi: m?.bmi,
           muscleKg: m?.muscleKg,
@@ -94,6 +96,7 @@ function buildRows(
     date: m.date,
     weightKg: m.weightKg,
     labels: m.labels,
+    note: m.note,
     bodyFatPct: m.bodyFatPct,
     bmi: m.bmi,
     muscleKg: m.muscleKg,
@@ -293,6 +296,9 @@ function DetailTooltip({ active, payload }: TooltipProps<number, string>) {
               .join(" / ")}
           </span>
         </div>
+      )}
+      {row.note && (
+        <div className="tooltip-note">{row.note}</div>
       )}
     </div>
   );

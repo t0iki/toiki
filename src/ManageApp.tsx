@@ -9,7 +9,7 @@ import {
 import {
   ensurePageOwner,
   saveGoal,
-  saveMeasurementLabels,
+  saveMeasurementMeta,
   saveMeasurements,
   subscribePage,
 } from "./lib/store";
@@ -75,14 +75,18 @@ export default function ManageApp() {
     }
   }
 
-  async function handleLabelsSave(date: string, labels: string[]) {
+  async function handleDaySave(
+    date: string,
+    data: { labels: string[]; note: string },
+  ) {
     if (FIREBASE_ENABLED && user && isOwner) {
-      await saveMeasurementLabels(pageId, date, labels);
+      await saveMeasurementMeta(pageId, date, data);
     } else {
+      const noteValue = data.note.trim() === "" ? undefined : data.note.trim();
       setPage((prev) => ({
         ...prev,
         measurements: prev.measurements.map((m) =>
-          m.date === date ? { ...m, labels } : m,
+          m.date === date ? { ...m, labels: data.labels, note: noteValue } : m,
         ),
       }));
     }
@@ -164,19 +168,24 @@ export default function ManageApp() {
       />
 
       <footer>
-        <div>{page.measurements.length} 件の測定値</div>
+        <div>
+          {page.measurements.length} 件の測定値
+          {progress.latestDate && ` · 最終更新 ${progress.latestDate}`}
+        </div>
       </footer>
 
-      {editingDate && (
-        <LabelEditor
-          date={editingDate}
-          initialLabels={
-            page.measurements.find((m) => m.date === editingDate)?.labels ?? []
-          }
-          onSave={(labels) => handleLabelsSave(editingDate, labels)}
-          onClose={() => setEditingDate(null)}
-        />
-      )}
+      {editingDate && (() => {
+        const m = page.measurements.find((x) => x.date === editingDate);
+        return (
+          <LabelEditor
+            date={editingDate}
+            initialLabels={m?.labels ?? []}
+            initialNote={m?.note ?? ""}
+            onSave={(data) => handleDaySave(editingDate, data)}
+            onClose={() => setEditingDate(null)}
+          />
+        );
+      })()}
     </div>
   );
 }
