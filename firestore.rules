@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /pages/{pageId} {
+      # // URL を知っている人は誰でも閲覧可
+      allow read: if true;
+
+      # // ページ未作成のときは初回登録者がオーナーになれる。以降は ownerUid のみ書込可。
+      allow create: if request.auth != null
+                      && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if request.auth != null
+                              && resource.data.ownerUid == request.auth.uid;
+
+      match /measurements/{date} {
+        allow read: if true;
+        allow write: if request.auth != null
+                       && get(/databases/$(database)/documents/pages/$(pageId)).data.ownerUid == request.auth.uid;
+      }
+    }
+  }
+}

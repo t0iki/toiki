@@ -1,0 +1,340 @@
+:root {
+  color-scheme: light;
+  --bg: #f6f5f1;
+  --paper: #ffffff;
+  --fg: #0a0a0a;
+  --muted: #6e6c64;
+  --muted-strong: #3a3933;
+  --divider: rgba(10, 10, 10, 0.12);
+  --hairline: rgba(10, 10, 10, 0.22);
+  --ok: #0a0a0a;
+  --danger: #7c1d1d;
+  font-family: "Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.6;
+}
+
+a {
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 1px solid var(--hairline);
+  padding-bottom: 1px;
+  transition: opacity 0.15s ease;
+}
+a:hover {
+  opacity: 0.6;
+}
+
+button {
+  font: inherit;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--bg);
+  background: var(--fg);
+  border: 1px solid var(--fg);
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+button:hover {
+  background: #2a2a2a;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+button.ghost {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--fg);
+}
+button.ghost:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+input[type="number"],
+input[type="file"],
+input[type="text"],
+input[type="date"] {
+  font: inherit;
+  font-size: 14px;
+  color: var(--fg);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  padding: 6px 0;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+input[type="number"]:focus,
+input[type="text"]:focus,
+input[type="date"]:focus {
+  border-bottom-color: var(--fg);
+}
+input[type="file"] {
+  padding: 4px 0;
+}
+
+.app {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 40px 28px 72px;
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 24px 18px 56px;
+  }
+}
+
+.app-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+.app-header h1 {
+  font-family: "Instrument Serif", "Noto Serif JP", Georgia, "Times New Roman",
+    serif;
+  font-weight: 500;
+  font-size: clamp(20px, 2.6vw, 28px);
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+  margin: 0;
+  max-width: none;
+}
+.app-header .sub {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.app-header .sub a {
+  border-bottom-color: var(--muted);
+  color: var(--muted);
+}
+
+.card {
+  border-top: 1px solid var(--divider);
+  padding: 24px 0 20px;
+}
+.card h2 {
+  font-family: "Inter", "Noto Sans JP", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+
+.goal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 20px 28px;
+}
+.goal-grid .stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.goal-grid .stat .label {
+  font-size: 11px;
+  color: var(--muted);
+}
+.goal-grid .stat .value {
+  font-family: "Inter", "Noto Sans JP", sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.goal-grid .stat .value.ok {
+  color: var(--ok);
+}
+.goal-grid .stat .value.danger {
+  color: var(--danger);
+}
+
+.uploader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.uploader .hint {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.tooltip {
+  background: var(--paper);
+  border: 1px solid var(--divider);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--fg);
+  min-width: 160px;
+  box-shadow: 0 6px 20px -10px rgba(0, 0, 0, 0.12);
+}
+.tooltip .tooltip-date {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.tooltip .tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 1px 0;
+  font-variant-numeric: tabular-nums;
+}
+.tooltip .tooltip-row .label {
+  color: var(--muted);
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 32px 0;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.goal-editor {
+  display: flex;
+  gap: 28px;
+  align-items: flex-end;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.goal-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.goal-editor label span {
+  font-size: 11px;
+  color: var(--muted);
+  margin-right: 0 !important;
+}
+
+footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--divider);
+  color: var(--muted);
+  font-size: 11px;
+  text-align: left;
+}
+
+code {
+  font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  font-size: 0.9em;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal {
+  background: var(--paper);
+  border-radius: 6px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.3);
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.modal-header h3 {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+button.icon {
+  padding: 4px 10px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.label-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+.label-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--divider);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  letter-spacing: 0;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.label-chip:hover {
+  background: rgba(10, 10, 10, 0.04);
+}
+.label-chip.active {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+.label-chip .emoji {
+  font-size: 16px;
+}
