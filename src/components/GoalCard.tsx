@@ -21,11 +21,11 @@ export function GoalCard({ progress }: Props) {
     targetKg,
     startWeight,
     latestWeight,
+    latestDate,
     delta,
     remaining,
     totalDays,
     elapsedDays,
-    daysLeft,
     periodProgress,
     onTrack,
   } = progress;
@@ -58,10 +58,7 @@ export function GoalCard({ progress }: Props) {
           label="経過"
           value={`${elapsedDays} / ${totalDays} 日 (${Math.round(periodProgress * 100)}%)`}
         />
-        <Stat
-          label="残り"
-          value={daysLeft > 0 ? `${daysLeft} 日` : "締切到達"}
-        />
+        <Stat label="最終更新" value={latestDate ?? "—"} />
         {onTrack === true && (
           <Stat label="ペース" value="On track" tone="ok" />
         )}

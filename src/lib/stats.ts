@@ -7,6 +7,7 @@ export type GoalProgress = {
   targetKg: number;
   startWeight: number | null;
   latestWeight: number | null;
+  latestDate: string | null;
   /** 現在体重 - 開始体重 (負なら減量できている) */
   delta: number | null;
   /** 目標まで残り kg (正なら残り、負なら超過達成) */
@@ -43,10 +44,9 @@ export function computeGoalProgress(
   const periodProgress = elapsedDays / totalDays;
 
   const startWeight = pickStartWeight(measurements, goal.startDate);
-  const latestWeight =
-    measurements.length > 0
-      ? measurements[measurements.length - 1]!.weightKg
-      : null;
+  const latest = measurements.length > 0 ? measurements[measurements.length - 1]! : null;
+  const latestWeight = latest?.weightKg ?? null;
+  const latestDate = latest?.date ?? null;
 
   const delta =
     startWeight != null && latestWeight != null
@@ -68,6 +68,7 @@ export function computeGoalProgress(
     targetKg: goal.targetKg,
     startWeight,
     latestWeight,
+    latestDate,
     delta,
     remaining,
     totalDays,
@@ -108,6 +109,7 @@ function emptyProgress(): GoalProgress {
     targetKg: 0,
     startWeight: null,
     latestWeight: null,
+    latestDate: null,
     delta: null,
     remaining: null,
     totalDays: 0,
