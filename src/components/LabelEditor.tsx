@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import { LABEL_DEFS } from "../lib/labels";
+import type { Running } from "../types";
 
 type Props = {
   date: string;
   initialLabels: string[];
   initialNote: string;
-  onSave: (data: { labels: string[]; note: string }) => void | Promise<void>;
+  initialRunning: Running | null;
+  onSave: (data: {
+    labels: string[];
+    note: string;
+    running: Running | null;
+  }) => void | Promise<void>;
   onClose: () => void;
 };
 
@@ -13,11 +19,20 @@ export function LabelEditor({
   date,
   initialLabels,
   initialNote,
+  initialRunning,
   onSave,
   onClose,
 }: Props) {
   const [labels, setLabels] = useState<string[]>(initialLabels);
   const [note, setNote] = useState<string>(initialNote);
+  const [distance, setDistance] = useState<string>(
+    initialRunning ? String(initialRunning.distanceKm) : "",
+  );
+  const [duration, setDuration] = useState<string>(
+    initialRunning?.durationMin != null
+      ? String(initialRunning.durationMin)
+      : "",
+  );
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -37,9 +52,30 @@ export function LabelEditor({
 
   async function handleSave() {
     setErr(null);
+    let running: Running | null = null;
+    if (distance.trim() !== "") {
+      const km = Number(distance);
+      if (!Number.isFinite(km) || km < 0) {
+        setErr("距離は 0 以上の数値で");
+        return;
+      }
+      running = { distanceKm: km };
+      if (duration.trim() !== "") {
+        const min = Number(duration);
+        if (!Number.isFinite(min) || min < 0) {
+          setErr("時間は 0 以上の分数で");
+          return;
+        }
+        running.durationMin = min;
+      }
+    } else if (duration.trim() !== "") {
+      setErr("距離も入れてください");
+      return;
+    }
+
     setSaving(true);
     try {
-      await onSave({ labels, note });
+      await onSave({ labels, note, running });
       onClose();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -75,6 +111,34 @@ export function LabelEditor({
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        <div className="modal-section">
+          <div className="modal-section-label">ランニング</div>
+          <div className="running-fields">
+            <label>
+              <span>距離 (km)</span>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={distance}
+                onChange={(e) => setDistance(e.target.value)}
+                placeholder="0"
+              />
+            </label>
+            <label>
+              <span>時間 (分)</span>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                placeholder="任意"
+              />
+            </label>
           </div>
         </div>
 

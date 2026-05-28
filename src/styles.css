@@ -358,3 +358,21 @@ button.icon {
 .label-chip .emoji {
   font-size: 16px;
 }
+
+.running-fields {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.running-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.running-fields label span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.running-fields input {
+  width: 110px;
+}

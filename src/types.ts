@@ -12,6 +12,13 @@ export type Measurement = {
   labels?: string[];
   /** 一言メモ */
   note?: string;
+  /** ランニング記録 (距離 / 時間 / ペース) */
+  running?: Running;
+};
+
+export type Running = {
+  distanceKm: number;
+  durationMin?: number;
 };
 
 export type Goal = {

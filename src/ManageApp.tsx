@@ -19,7 +19,7 @@ import { GoalEditor } from "./components/GoalEditor";
 import { LabelEditor } from "./components/LabelEditor";
 import { Uploader } from "./components/Uploader";
 import { WeightChart } from "./components/WeightChart";
-import type { Goal, Measurement, PageData } from "./types";
+import type { Goal, Measurement, PageData, Running } from "./types";
 import type { User } from "firebase/auth";
 
 export default function ManageApp() {
@@ -77,16 +77,19 @@ export default function ManageApp() {
 
   async function handleDaySave(
     date: string,
-    data: { labels: string[]; note: string },
+    data: { labels: string[]; note: string; running: Running | null },
   ) {
     if (FIREBASE_ENABLED && user && isOwner) {
       await saveMeasurementMeta(pageId, date, data);
     } else {
       const noteValue = data.note.trim() === "" ? undefined : data.note.trim();
+      const runningValue = data.running ?? undefined;
       setPage((prev) => ({
         ...prev,
         measurements: prev.measurements.map((m) =>
-          m.date === date ? { ...m, labels: data.labels, note: noteValue } : m,
+          m.date === date
+            ? { ...m, labels: data.labels, note: noteValue, running: runningValue }
+            : m,
         ),
       }));
     }
@@ -181,6 +184,7 @@ export default function ManageApp() {
             date={editingDate}
             initialLabels={m?.labels ?? []}
             initialNote={m?.note ?? ""}
+            initialRunning={m?.running ?? null}
             onSave={(data) => handleDaySave(editingDate, data)}
             onClose={() => setEditingDate(null)}
           />

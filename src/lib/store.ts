@@ -10,7 +10,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { getFirebase } from "../firebase";
-import type { Goal, Measurement, PageData } from "../types";
+import type { Goal, Measurement, PageData, Running } from "../types";
 
 export function pageDocPath(pageId: string) {
   return ["pages", pageId] as const;
@@ -155,17 +155,17 @@ export async function saveMeasurements(
 export async function saveMeasurementMeta(
   pageId: string,
   date: string,
-  meta: { labels: string[]; note: string },
+  meta: { labels: string[]; note: string; running: Running | null },
 ): Promise<void> {
   const fb = getFirebase();
   if (!fb) throw new Error("Firebase is not configured");
   const ref = doc(fb.db, ...pageDocPath(pageId), "measurements", date);
-  // 空文字の note は保存しない（merge で削除はしないが、undefined にして列を作らない）
   const trimmed = meta.note.trim();
   const payload: Record<string, unknown> = {
     date,
     labels: meta.labels,
     note: trimmed === "" ? deleteField() : trimmed,
+    running: meta.running == null ? deleteField() : meta.running,
   };
   await setDoc(ref, payload, { merge: true });
 }

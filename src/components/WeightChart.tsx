@@ -9,7 +9,7 @@ import {
   type TooltipProps,
 } from "recharts";
 import { getLabelDef } from "../lib/labels";
-import type { Goal, Measurement } from "../types";
+import type { Goal, Measurement, Running } from "../types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -26,6 +26,7 @@ type Row = {
   idealWeight?: number;
   labels?: string[];
   note?: string;
+  running?: Running;
   bodyFatPct?: number;
   bmi?: number;
   muscleKg?: number;
@@ -79,6 +80,7 @@ function buildRows(
           idealWeight: ideal,
           labels: m?.labels,
           note: m?.note,
+          running: m?.running,
           bodyFatPct: m?.bodyFatPct,
           bmi: m?.bmi,
           muscleKg: m?.muscleKg,
@@ -97,6 +99,7 @@ function buildRows(
     weightKg: m.weightKg,
     labels: m.labels,
     note: m.note,
+    running: m.running,
     bodyFatPct: m.bodyFatPct,
     bmi: m.bmi,
     muscleKg: m.muscleKg,
@@ -212,6 +215,12 @@ function CustomDot({
   }
   const labels = payload.labels ?? [];
   const clickable = Boolean(onPointClick);
+  const badges: { key: string; emoji: string }[] = [];
+  labels.forEach((id) => {
+    const def = getLabelDef(id);
+    if (def) badges.push({ key: `l-${id}`, emoji: def.emoji });
+  });
+  if (payload.running) badges.push({ key: "run", emoji: "🏃" });
 
   return (
     <g
@@ -222,25 +231,21 @@ function CustomDot({
       <circle
         cx={cx}
         cy={cy}
-        r={labels.length > 0 ? 3.5 : 2.5}
+        r={badges.length > 0 ? 3.5 : 2.5}
         fill="#0a0a0a"
       />
-      {labels.map((id, i) => {
-        const def = getLabelDef(id);
-        if (!def) return null;
-        return (
-          <text
-            key={id}
-            x={cx}
-            y={cy - 12 - i * 16}
-            textAnchor="middle"
-            fontSize={14}
-            style={{ userSelect: "none" }}
-          >
-            {def.emoji}
-          </text>
-        );
-      })}
+      {badges.map((b, i) => (
+        <text
+          key={b.key}
+          x={cx}
+          y={cy - 12 - i * 16}
+          textAnchor="middle"
+          fontSize={14}
+          style={{ userSelect: "none" }}
+        >
+          {b.emoji}
+        </text>
+      ))}
     </g>
   );
 }
@@ -284,6 +289,12 @@ function DetailTooltip({ active, payload }: TooltipProps<number, string>) {
           </span>
         </div>
       ))}
+      {row.running && (
+        <div className="tooltip-row" style={{ marginTop: 6 }}>
+          <span className="label">🏃 ランニング</span>
+          <span>{formatRunning(row.running)}</span>
+        </div>
+      )}
       {labels.length > 0 && (
         <div className="tooltip-row" style={{ marginTop: 6 }}>
           <span className="label">ラベル</span>
@@ -307,4 +318,21 @@ function DetailTooltip({ active, payload }: TooltipProps<number, string>) {
 function fmt(n: number | undefined, digits: number): string | undefined {
   if (n == null || !Number.isFinite(n)) return undefined;
   return n.toFixed(digits);
+}
+
+function formatRunning(r: Running): string {
+  const parts = [`${r.distanceKm.toFixed(2)} km`];
+  if (r.durationMin != null) {
+    const total = r.durationMin;
+    const h = Math.floor(total / 60);
+    const m = Math.round(total - h * 60);
+    parts.push(h > 0 ? `${h}h${m}m` : `${m}分`);
+    if (r.distanceKm > 0) {
+      const paceMinPerKm = total / r.distanceKm;
+      const paceMin = Math.floor(paceMinPerKm);
+      const paceSec = Math.round((paceMinPerKm - paceMin) * 60);
+      parts.push(`${paceMin}'${String(paceSec).padStart(2, "0")}"/km`);
+    }
+  }
+  return parts.join(" · ");
 }
