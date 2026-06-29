@@ -37,6 +37,7 @@ type Row = {
   boneKg?: number;
 } & {
   [key: `idealWeight${number}`]: number | undefined;
+  [key: `idealConnector${number}`]: number | undefined;
 };
 
 function pad(n: number): string {
@@ -71,6 +72,8 @@ function buildRows(
   const end = parseISO(maxDate);
   if (!start || !end || end < start) return [];
 
+  const connectors = buildGoalConnectors(goals, progresses);
+
   const totalDays = Math.max(
     0,
     Math.round((end.getTime() - start.getTime()) / DAY_MS),
@@ -96,20 +99,9 @@ function buildRows(
     };
     goals.forEach((goal, index) => {
       const progress = progresses[index];
-      const goalStart = parseISO(goal.startDate);
-      const goalEnd = parseISO(goal.endDate);
-      if (!goalStart || !goalEnd || goalEnd < goalStart) return;
       if (dateStr < goal.startDate || dateStr > goal.endDate) return;
-      if (progress?.startWeight == null) return;
-      const goalTotalDays = Math.max(
-        1,
-        Math.round((goalEnd.getTime() - goalStart.getTime()) / DAY_MS),
-      );
-      const goalElapsedDays = Math.round(
-        (d.getTime() - goalStart.getTime()) / DAY_MS,
-      );
-      const value =
-        progress.startWeight - goal.targetKg * (goalElapsedDays / goalTotalDays);
+      const value = idealValueForDate(goal, progress, d);
+      if (value == null) return;
       const key = idealKey(index);
       row[key] = value;
       row.goalPaces = [
@@ -117,9 +109,80 @@ function buildRows(
         { label: `${index + 1}つ目の目標ペース`, value },
       ];
     });
+    connectors.forEach((connector) => {
+      if (dateStr === connector.startDate) {
+        row[connector.key] = connector.startValue;
+      }
+      if (dateStr === connector.endDate) {
+        row[connector.key] = connector.endValue;
+      }
+    });
     rows.push(row);
   }
   return rows;
+}
+
+type GoalConnector = {
+  key: `idealConnector${number}`;
+  startDate: string;
+  endDate: string;
+  startValue: number;
+  endValue: number;
+};
+
+function buildGoalConnectors(
+  goals: Goal[],
+  progresses: GoalProgress[],
+): GoalConnector[] {
+  const connectors: GoalConnector[] = [];
+  for (let index = 0; index < goals.length - 1; index += 1) {
+    const currentGoal = goals[index]!;
+    const nextGoal = goals[index + 1]!;
+    const currentEnd = parseISO(currentGoal.endDate);
+    const nextStart = parseISO(nextGoal.startDate);
+    if (!currentEnd || !nextStart) continue;
+    const diffMs = nextStart.getTime() - currentEnd.getTime();
+    if (diffMs < 0 || diffMs > DAY_MS) continue;
+
+    const startValue = idealValueForDate(
+      currentGoal,
+      progresses[index],
+      currentEnd,
+    );
+    const endValue = idealValueForDate(
+      nextGoal,
+      progresses[index + 1],
+      nextStart,
+    );
+    if (startValue == null || endValue == null) continue;
+    connectors.push({
+      key: connectorKey(index),
+      startDate: currentGoal.endDate,
+      endDate: nextGoal.startDate,
+      startValue,
+      endValue,
+    });
+  }
+  return connectors;
+}
+
+function idealValueForDate(
+  goal: Goal,
+  progress: GoalProgress | undefined,
+  date: Date,
+): number | null {
+  const goalStart = parseISO(goal.startDate);
+  const goalEnd = parseISO(goal.endDate);
+  if (!goalStart || !goalEnd || goalEnd < goalStart) return null;
+  if (progress?.startWeight == null) return null;
+  const goalTotalDays = Math.max(
+    1,
+    Math.round((goalEnd.getTime() - goalStart.getTime()) / DAY_MS),
+  );
+  const goalElapsedDays = Math.round(
+    (date.getTime() - goalStart.getTime()) / DAY_MS,
+  );
+  return progress.startWeight - goal.targetKg * (goalElapsedDays / goalTotalDays);
 }
 
 export function WeightChart({
@@ -142,6 +205,8 @@ export function WeightChart({
     goals.forEach((_, index) => {
       const value = r[idealKey(index)];
       if (typeof value === "number") list.push(value);
+      const connectorValue = r[connectorKey(index)];
+      if (typeof connectorValue === "number") list.push(connectorValue);
     });
     return list;
   });
@@ -207,6 +272,20 @@ export function WeightChart({
               isAnimationActive={false}
             />
           ))}
+          {goals.slice(0, -1).map((goal, index) => (
+            <Line
+              key={`connector-${goal.id ?? `${goal.startDate}-${goal.endDate}`}`}
+              type="linear"
+              dataKey={connectorKey(index)}
+              stroke={progresses[index + 1]?.achieved ? "#177245" : "rgba(10,10,10,0.35)"}
+              strokeWidth={1}
+              strokeDasharray="3 4"
+              dot={false}
+              activeDot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+          ))}
           {/* 実体重 */}
           <Line
             type="monotone"
@@ -236,6 +315,10 @@ type DotProps = {
 
 function idealKey(index: number): `idealWeight${number}` {
   return `idealWeight${index}`;
+}
+
+function connectorKey(index: number): `idealConnector${number}` {
+  return `idealConnector${index}`;
 }
 
 function CustomDot({
