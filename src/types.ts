@@ -22,6 +22,7 @@ export type Running = {
 };
 
 export type Goal = {
+  id?: string;
   /** YYYY-MM-DD */
   startDate: string;
   /** YYYY-MM-DD */
@@ -33,6 +34,7 @@ export type Goal = {
 export type PageData = {
   pageId: string;
   ownerUid?: string;
+  goals?: Goal[];
   goal?: Goal;
   measurements: Measurement[];
 };

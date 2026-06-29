@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_PAGE_ID, FIREBASE_ENABLED } from "./firebase";
 import { subscribePage } from "./lib/store";
-import { computeGoalProgress } from "./lib/stats";
+import { computeGoalProgresses } from "./lib/stats";
 import { GoalCard } from "./components/GoalCard";
 import { WeightChart } from "./components/WeightChart";
 import type { PageData } from "./types";
@@ -22,10 +22,15 @@ export default function ViewerApp() {
     return subscribePage(pageId, setPage);
   }, [pageId]);
 
-  const progress = useMemo(
-    () => computeGoalProgress(page.measurements, page.goal),
-    [page.measurements, page.goal],
+  const goals = useMemo(
+    () => page.goals ?? (page.goal ? [page.goal] : []),
+    [page.goals, page.goal],
   );
+  const progresses = useMemo(
+    () => computeGoalProgresses(page.measurements, goals),
+    [page.measurements, goals],
+  );
+  const latestMeasurement = page.measurements[page.measurements.length - 1];
 
   return (
     <div className="app">
@@ -35,21 +40,21 @@ export default function ViewerApp() {
         </div>
       </header>
 
-      <GoalCard progress={progress} />
+      <GoalCard progresses={progresses} />
 
       <div className="card">
         <h2>体重の推移</h2>
         <WeightChart
           measurements={page.measurements}
-          goal={page.goal}
-          startWeight={progress.startWeight}
+          goals={goals}
+          progresses={progresses}
         />
       </div>
 
       <footer>
         <div>
           {page.measurements.length} 件の測定値
-          {progress.latestDate && ` · 最終更新 ${progress.latestDate}`}
+          {latestMeasurement?.date && ` · 最終更新 ${latestMeasurement.date}`}
         </div>
       </footer>
     </div>

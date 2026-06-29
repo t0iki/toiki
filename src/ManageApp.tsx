@@ -8,12 +8,12 @@ import {
 } from "./firebase";
 import {
   ensurePageOwner,
-  saveGoal,
+  saveGoals,
   saveMeasurementMeta,
   saveMeasurements,
   subscribePage,
 } from "./lib/store";
-import { computeGoalProgress } from "./lib/stats";
+import { computeGoalProgresses } from "./lib/stats";
 import { GoalCard } from "./components/GoalCard";
 import { GoalEditor } from "./components/GoalEditor";
 import { LabelEditor } from "./components/LabelEditor";
@@ -53,6 +53,10 @@ export default function ManageApp() {
   const isOwner = Boolean(
     FIREBASE_ENABLED && user && (!page.ownerUid || page.ownerUid === user.uid),
   );
+  const goals = useMemo(
+    () => page.goals ?? (page.goal ? [page.goal] : []),
+    [page.goals, page.goal],
+  );
 
   async function handleImport(measurements: Measurement[]) {
     if (FIREBASE_ENABLED && user && isOwner) {
@@ -67,11 +71,16 @@ export default function ManageApp() {
   }
 
   async function handleGoalSave(goal: Goal) {
+    const nextGoals = [...goals, { ...goal, id: createGoalId() }];
     if (FIREBASE_ENABLED && user && isOwner) {
       await ensurePageOwner(pageId, user.uid);
-      await saveGoal(pageId, goal);
+      await saveGoals(pageId, nextGoals);
     } else {
-      setPage((prev) => ({ ...prev, goal }));
+      setPage((prev) => ({
+        ...prev,
+        goals: nextGoals,
+        goal: nextGoals[nextGoals.length - 1],
+      }));
     }
   }
 
@@ -95,9 +104,14 @@ export default function ManageApp() {
     }
   }
 
-  const progress = useMemo(
-    () => computeGoalProgress(page.measurements, page.goal),
-    [page.measurements, page.goal],
+  const progresses = useMemo(
+    () => computeGoalProgresses(page.measurements, goals),
+    [page.measurements, goals],
+  );
+  const latestMeasurement = page.measurements[page.measurements.length - 1];
+  const nextGoalDraft = useMemo(
+    () => buildNextGoalDraft(goals),
+    [goals],
   );
 
   return (
@@ -147,22 +161,25 @@ export default function ManageApp() {
         </div>
       )}
 
-      <GoalCard progress={progress} />
+      <GoalCard progresses={progresses} />
 
       <div className="card">
         <h2>体重の推移</h2>
         <WeightChart
           measurements={page.measurements}
-          goal={page.goal}
-          startWeight={progress.startWeight}
+          goals={goals}
+          progresses={progresses}
           onPointClick={isOwner ? setEditingDate : undefined}
         />
       </div>
 
       <GoalEditor
-        value={page.goal}
+        key={`${nextGoalDraft.startDate}-${nextGoalDraft.endDate}-${nextGoalDraft.targetKg}`}
+        value={nextGoalDraft}
         onSave={handleGoalSave}
         disabled={FIREBASE_ENABLED ? !isOwner : false}
+        title="次の目標を追加"
+        submitLabel="追加"
       />
 
       <Uploader
@@ -173,7 +190,7 @@ export default function ManageApp() {
       <footer>
         <div>
           {page.measurements.length} 件の測定値
-          {progress.latestDate && ` · 最終更新 ${progress.latestDate}`}
+          {latestMeasurement?.date && ` · 最終更新 ${latestMeasurement.date}`}
         </div>
       </footer>
 
@@ -192,6 +209,43 @@ export default function ManageApp() {
       })()}
     </div>
   );
+}
+
+function buildNextGoalDraft(goals: Goal[]): Goal {
+  const latest = goals[goals.length - 1];
+  const todayDate = today();
+  const nextStartDate = latest ? addDays(latest.endDate, 1) : todayDate;
+  const startDate = nextStartDate < todayDate ? todayDate : nextStartDate;
+  return {
+    startDate,
+    endDate: addDays(startDate, 30),
+    targetKg: latest?.targetKg ?? 2,
+  };
+}
+
+function createGoalId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `goal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function today(): string {
+  const d = new Date();
+  return isoDate(d);
+}
+
+function addDays(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return isoDate(d);
+}
+
+function isoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${da}`;
 }
 
 function mergeMeasurements(

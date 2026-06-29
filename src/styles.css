@@ -9,6 +9,9 @@
   --hairline: rgba(10, 10, 10, 0.22);
   --ok: #0a0a0a;
   --danger: #7c1d1d;
+  --success-bg: #e7f5e9;
+  --success-border: #9fd2ad;
+  --success-fg: #14532d;
   font-family: "Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont,
     "Helvetica Neue", system-ui, sans-serif;
   font-feature-settings: "ss01", "cv11";
@@ -151,6 +154,40 @@ input[type="file"] {
   margin: 0 0 16px;
 }
 
+.goal-cards {
+  display: grid;
+  gap: 12px;
+}
+.goal-card {
+  padding-left: 0;
+  padding-right: 0;
+}
+.goal-card.achieved {
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: 6px;
+  padding: 18px;
+}
+.goal-card-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.goal-card-heading h2 {
+  margin-bottom: 0;
+}
+.goal-badge {
+  flex: 0 0 auto;
+  color: var(--success-fg);
+  border: 1px solid var(--success-border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
 .goal-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -174,7 +211,7 @@ input[type="file"] {
   font-variant-numeric: tabular-nums;
 }
 .goal-grid .stat .value.ok {
-  color: var(--ok);
+  color: var(--success-fg);
 }
 .goal-grid .stat .value.danger {
   color: var(--danger);
