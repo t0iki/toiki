@@ -13,7 +13,7 @@ import {
   saveMeasurements,
   subscribePage,
 } from "./lib/store";
-import { computeGoalProgresses } from "./lib/stats";
+import { computeGoalProgresses, type GoalProgress } from "./lib/stats";
 import { GoalCard } from "./components/GoalCard";
 import { GoalEditor } from "./components/GoalEditor";
 import { LabelEditor } from "./components/LabelEditor";
@@ -72,6 +72,23 @@ export default function ManageApp() {
 
   async function handleGoalSave(goal: Goal) {
     const nextGoals = [...goals, { ...goal, id: createGoalId() }];
+    if (FIREBASE_ENABLED && user && isOwner) {
+      await ensurePageOwner(pageId, user.uid);
+      await saveGoals(pageId, nextGoals);
+    } else {
+      setPage((prev) => ({
+        ...prev,
+        goals: nextGoals,
+        goal: nextGoals[nextGoals.length - 1],
+      }));
+    }
+  }
+
+  async function handleGoalDelete(progress: GoalProgress) {
+    if (!progress.hasGoal) return;
+    const label = `${progress.startDate} 〜 ${progress.endDate} の目標`;
+    if (!window.confirm(`${label} を削除しますか？`)) return;
+    const nextGoals = goals.filter((goal) => !isSameGoal(goal, progress));
     if (FIREBASE_ENABLED && user && isOwner) {
       await ensurePageOwner(pageId, user.uid);
       await saveGoals(pageId, nextGoals);
@@ -161,7 +178,10 @@ export default function ManageApp() {
         </div>
       )}
 
-      <GoalCard progresses={progresses} />
+      <GoalCard
+        progresses={progresses}
+        onDelete={isOwner || !FIREBASE_ENABLED ? handleGoalDelete : undefined}
+      />
 
       <div className="card">
         <h2>体重の推移</h2>
@@ -246,6 +266,15 @@ function isoDate(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const da = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${da}`;
+}
+
+function isSameGoal(goal: Goal, progress: GoalProgress): boolean {
+  if (progress.goalId && goal.id === progress.goalId) return true;
+  return (
+    goal.startDate === progress.startDate &&
+    goal.endDate === progress.endDate &&
+    goal.targetKg === progress.targetKg
+  );
 }
 
 function mergeMeasurements(
