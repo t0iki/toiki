@@ -5,7 +5,9 @@ type Props = {
 };
 
 export function GoalCard({ progresses }: Props) {
-  const visible = progresses.filter((progress) => progress.hasGoal);
+  const visible = progresses
+    .filter((progress) => progress.hasGoal)
+    .sort(compareNewestFirst);
   if (visible.length === 0) {
     return (
       <div className="card">
@@ -16,17 +18,37 @@ export function GoalCard({ progresses }: Props) {
       </div>
     );
   }
+  const latest = visible[0]!;
+  const past = visible.slice(1);
 
   return (
     <div className="goal-cards">
-      {visible.map((progress) => (
-        <GoalProgressCard
-          key={progress.goalId ?? `${progress.startDate}-${progress.endDate}`}
-          progress={progress}
-        />
-      ))}
+      <GoalProgressCard progress={latest} />
+      {past.length > 0 && (
+        <details className="past-goals">
+          <summary>過去の目標 {past.length}件</summary>
+          <div className="goal-cards">
+            {past.map((progress) => (
+              <GoalProgressCard
+                key={progress.goalId ?? `${progress.startDate}-${progress.endDate}`}
+                progress={progress}
+              />
+            ))}
+          </div>
+        </details>
+      )}
     </div>
   );
+}
+
+function compareNewestFirst(a: GoalProgress, b: GoalProgress): number {
+  const aEnd = a.endDate ?? "";
+  const bEnd = b.endDate ?? "";
+  if (aEnd !== bEnd) return aEnd > bEnd ? -1 : 1;
+  const aStart = a.startDate ?? "";
+  const bStart = b.startDate ?? "";
+  if (aStart !== bStart) return aStart > bStart ? -1 : 1;
+  return 0;
 }
 
 function GoalProgressCard({ progress }: { progress: GoalProgress }) {
@@ -72,7 +94,7 @@ function GoalProgressCard({ progress }: { progress: GoalProgress }) {
           value={
             achieved
               ? achievedWeight != null
-                ? `${achievedDate} に ${achievedWeight.toFixed(1)} kg`
+                ? `${achievedDate} に 達成(${achievedWeight.toFixed(1)} kg)`
                 : "達成!"
               : remaining == null
                 ? "—"
