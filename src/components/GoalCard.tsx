@@ -2,9 +2,10 @@ import type { GoalProgress } from "../lib/stats";
 
 type Props = {
   progresses: GoalProgress[];
+  onDelete?: (progress: GoalProgress) => void;
 };
 
-export function GoalCard({ progresses }: Props) {
+export function GoalCard({ progresses, onDelete }: Props) {
   const visible = progresses
     .filter((progress) => progress.hasGoal)
     .sort(compareNewestFirst);
@@ -23,7 +24,7 @@ export function GoalCard({ progresses }: Props) {
 
   return (
     <div className="goal-cards">
-      <GoalProgressCard progress={latest} />
+      <GoalProgressCard progress={latest} onDelete={onDelete} />
       {past.length > 0 && (
         <details className="past-goals">
           <summary>過去の目標 {past.length}件</summary>
@@ -32,6 +33,7 @@ export function GoalCard({ progresses }: Props) {
               <GoalProgressCard
                 key={progress.goalId ?? `${progress.startDate}-${progress.endDate}`}
                 progress={progress}
+                onDelete={onDelete}
               />
             ))}
           </div>
@@ -51,7 +53,13 @@ function compareNewestFirst(a: GoalProgress, b: GoalProgress): number {
   return 0;
 }
 
-function GoalProgressCard({ progress }: { progress: GoalProgress }) {
+function GoalProgressCard({
+  progress,
+  onDelete,
+}: {
+  progress: GoalProgress;
+  onDelete?: (progress: GoalProgress) => void;
+}) {
   const {
     startDate,
     endDate,
@@ -77,7 +85,18 @@ function GoalProgressCard({ progress }: { progress: GoalProgress }) {
         <h2>
           {startDate} 〜 {endDate} の進捗（目標 -{targetKg} kg）
         </h2>
-        {achieved && <span className="goal-badge">達成</span>}
+        <div className="goal-card-actions">
+          {achieved && <span className="goal-badge">達成</span>}
+          {onDelete && (
+            <button
+              className="ghost danger small"
+              type="button"
+              onClick={() => onDelete(progress)}
+            >
+              削除
+            </button>
+          )}
+        </div>
       </div>
       <div className="goal-grid">
         <Stat label="開始時体重" value={fmtKg(startWeight)} />
