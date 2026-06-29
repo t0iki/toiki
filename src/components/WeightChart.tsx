@@ -26,6 +26,7 @@ type Row = {
   date: string;
   weightKg?: number;
   goalPaces?: { label: string; value: number }[];
+  goalTargets?: { label: string; value: number }[];
   labels?: string[];
   note?: string;
   running?: Running;
@@ -38,6 +39,7 @@ type Row = {
 } & {
   [key: `idealWeight${number}`]: number | undefined;
   [key: `idealConnector${number}`]: number | undefined;
+  [key: `targetWeight${number}`]: number | undefined;
 };
 
 function pad(n: number): string {
@@ -101,13 +103,22 @@ function buildRows(
       const progress = progresses[index];
       if (dateStr < goal.startDate || dateStr > goal.endDate) return;
       const value = idealValueForDate(goal, progress, d);
-      if (value == null) return;
-      const key = idealKey(index);
-      row[key] = value;
-      row.goalPaces = [
-        ...(row.goalPaces ?? []),
-        { label: `${index + 1}つ目の目標ペース`, value },
-      ];
+      if (value != null) {
+        const key = idealKey(index);
+        row[key] = value;
+        row.goalPaces = [
+          ...(row.goalPaces ?? []),
+          { label: `${index + 1}つ目の目標ペース`, value },
+        ];
+      }
+      if (progress?.targetWeight != null) {
+        const key = targetKey(index);
+        row[key] = progress.targetWeight;
+        row.goalTargets = [
+          ...(row.goalTargets ?? []),
+          { label: `${index + 1}つ目の目標体重`, value: progress.targetWeight },
+        ];
+      }
     });
     connectors.forEach((connector) => {
       if (dateStr === connector.startDate) {
@@ -207,6 +218,8 @@ export function WeightChart({
       if (typeof value === "number") list.push(value);
       const connectorValue = r[connectorKey(index)];
       if (typeof connectorValue === "number") list.push(connectorValue);
+      const targetValue = r[targetKey(index)];
+      if (typeof targetValue === "number") list.push(targetValue);
     });
     return list;
   });
@@ -258,6 +271,19 @@ export function WeightChart({
               />
             ) : null,
           )}
+          {goals.map((goal, index) => (
+            <Line
+              key={`target-${goal.id ?? `${goal.startDate}-${goal.endDate}`}`}
+              type="linear"
+              dataKey={targetKey(index)}
+              stroke="#dc2626"
+              strokeWidth={1.75}
+              dot={false}
+              activeDot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+          ))}
           {goals.map((goal, index) => (
             <Line
               key={goal.id ?? `${goal.startDate}-${goal.endDate}`}
@@ -321,6 +347,10 @@ function connectorKey(index: number): `idealConnector${number}` {
   return `idealConnector${index}`;
 }
 
+function targetKey(index: number): `targetWeight${number}` {
+  return `targetWeight${index}`;
+}
+
 function CustomDot({
   cx,
   cy,
@@ -377,6 +407,13 @@ function DetailTooltip({ active, payload }: TooltipProps<number, string>) {
     rows.push({
       label: pace.label,
       value: fmt(pace.value, 1),
+      unit: "kg",
+    }),
+  );
+  row.goalTargets?.forEach((target) =>
+    rows.push({
+      label: target.label,
+      value: fmt(target.value, 1),
       unit: "kg",
     }),
   );
