@@ -158,6 +158,20 @@ input[type="file"] {
   display: grid;
   gap: 12px;
 }
+.past-goals {
+  border-top: 1px solid var(--divider);
+  padding-top: 12px;
+}
+.past-goals summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.past-goals summary:hover {
+  color: var(--fg);
+}
 .goal-card {
   padding-left: 0;
   padding-right: 0;
