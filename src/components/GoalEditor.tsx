@@ -5,6 +5,8 @@ type Props = {
   value?: Goal;
   onSave: (v: Goal) => void | Promise<void>;
   disabled?: boolean;
+  title?: string;
+  submitLabel?: string;
 };
 
 function today(): string {
@@ -24,7 +26,13 @@ function addDays(iso: string, days: number): string {
   return `${y}-${m}-${da}`;
 }
 
-export function GoalEditor({ value, onSave, disabled }: Props) {
+export function GoalEditor({
+  value,
+  onSave,
+  disabled,
+  title = "目標期間",
+  submitLabel = "保存",
+}: Props) {
   const [startDate, setStartDate] = useState(value?.startDate ?? today());
   const [endDate, setEndDate] = useState(
     value?.endDate ?? addDays(today(), 30),
@@ -43,7 +51,7 @@ export function GoalEditor({ value, onSave, disabled }: Props) {
 
   return (
     <div className="card">
-      <h2>目標期間</h2>
+      <h2>{title}</h2>
       <div className="goal-editor" style={{ flexWrap: "wrap" }}>
         <label>
           <span>開始</span>
@@ -102,7 +110,7 @@ export function GoalEditor({ value, onSave, disabled }: Props) {
             }
           }}
         >
-          {saving ? "保存中..." : "保存"}
+          {saving ? "保存中..." : submitLabel}
         </button>
         {disabled && (
           <span className="hint" style={{ color: "var(--muted)", fontSize: 11, letterSpacing: "0.1em" }}>

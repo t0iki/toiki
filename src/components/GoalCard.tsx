@@ -1,11 +1,12 @@
 import type { GoalProgress } from "../lib/stats";
 
 type Props = {
-  progress: GoalProgress;
+  progresses: GoalProgress[];
 };
 
-export function GoalCard({ progress }: Props) {
-  if (!progress.hasGoal) {
+export function GoalCard({ progresses }: Props) {
+  const visible = progresses.filter((progress) => progress.hasGoal);
+  if (visible.length === 0) {
     return (
       <div className="card">
         <h2>目標</h2>
@@ -15,12 +16,31 @@ export function GoalCard({ progress }: Props) {
       </div>
     );
   }
+
+  return (
+    <div className="goal-cards">
+      {visible.map((progress) => (
+        <GoalProgressCard
+          key={progress.goalId ?? `${progress.startDate}-${progress.endDate}`}
+          progress={progress}
+        />
+      ))}
+    </div>
+  );
+}
+
+function GoalProgressCard({ progress }: { progress: GoalProgress }) {
   const {
     startDate,
     endDate,
     targetKg,
+    targetWeight,
     startWeight,
     latestWeight,
+    bestWeight,
+    achieved,
+    achievedDate,
+    achievedWeight,
     delta,
     remaining,
     totalDays,
@@ -30,34 +50,41 @@ export function GoalCard({ progress }: Props) {
   } = progress;
 
   return (
-    <div className="card">
-      <h2>
-        {startDate} 〜 {endDate} の進捗（目標 -{targetKg} kg）
-      </h2>
+    <div className={`card goal-card${achieved ? " achieved" : ""}`}>
+      <div className="goal-card-heading">
+        <h2>
+          {startDate} 〜 {endDate} の進捗（目標 -{targetKg} kg）
+        </h2>
+        {achieved && <span className="goal-badge">達成</span>}
+      </div>
       <div className="goal-grid">
         <Stat label="開始時体重" value={fmtKg(startWeight)} />
-        <Stat label="現在体重" value={fmtKg(latestWeight)} />
+        <Stat label="目標体重" value={fmtKg(targetWeight)} />
+        <Stat label="期間内最終" value={fmtKg(latestWeight)} />
+        <Stat label="期間内最小" value={fmtKg(bestWeight)} tone={achieved ? "ok" : undefined} />
         <Stat
           label="開始比"
           value={delta != null ? `${signed(delta)} kg` : "—"}
           tone={delta == null ? undefined : delta < 0 ? "ok" : "danger"}
         />
         <Stat
-          label={`目標まで`}
+          label="目標まで"
           value={
-            remaining == null
-              ? "—"
-              : remaining <= 0
-                ? "達成!"
+            achieved
+              ? achievedWeight != null
+                ? `${achievedDate} に ${achievedWeight.toFixed(1)} kg`
+                : "達成!"
+              : remaining == null
+                ? "—"
                 : `あと ${remaining.toFixed(1)} kg`
           }
-          tone={remaining == null ? undefined : remaining <= 0 ? "ok" : undefined}
+          tone={achieved ? "ok" : undefined}
         />
         <Stat
           label="経過"
           value={`${elapsedDays} / ${totalDays} 日 (${Math.round(periodProgress * 100)}%)`}
         />
-        {onTrack === true && (
+        {onTrack === true && !achieved && (
           <Stat label="ペース" value="On track" tone="ok" />
         )}
       </div>

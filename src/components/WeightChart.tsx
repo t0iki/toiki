@@ -2,6 +2,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceArea,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -9,21 +10,22 @@ import {
   type TooltipProps,
 } from "recharts";
 import { getLabelDef } from "../lib/labels";
+import type { GoalProgress } from "../lib/stats";
 import type { Goal, Measurement, Running } from "../types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 type Props = {
   measurements: Measurement[];
-  goal?: Goal;
-  startWeight?: number | null;
+  goals?: Goal[];
+  progresses?: GoalProgress[];
   onPointClick?: (date: string) => void;
 };
 
 type Row = {
   date: string;
   weightKg?: number;
-  idealWeight?: number;
+  goalPaces?: { label: string; value: number }[];
   labels?: string[];
   note?: string;
   running?: Running;
@@ -33,6 +35,8 @@ type Row = {
   bmrKcal?: number;
   visceralFatLevel?: number;
   boneKg?: number;
+} & {
+  [key: `idealWeight${number}`]: number | undefined;
 };
 
 function pad(n: number): string {
@@ -51,71 +55,80 @@ function parseISO(iso: string): Date | null {
 
 function buildRows(
   measurements: Measurement[],
-  goal: Goal | undefined,
-  startWeight: number | null | undefined,
+  goals: Goal[],
+  progresses: GoalProgress[],
 ): Row[] {
   const byDate = new Map(measurements.map((m) => [m.date, m]));
+  const dates = [
+    ...measurements.map((m) => m.date),
+    ...goals.flatMap((goal) => [goal.startDate, goal.endDate]),
+  ];
 
-  if (goal) {
-    const start = parseISO(goal.startDate);
-    const end = parseISO(goal.endDate);
-    if (start && end && end >= start) {
-      const totalDays = Math.max(
+  if (dates.length === 0) return [];
+  const minDate = dates.reduce((a, b) => (a < b ? a : b));
+  const maxDate = dates.reduce((a, b) => (a > b ? a : b));
+  const start = parseISO(minDate);
+  const end = parseISO(maxDate);
+  if (!start || !end || end < start) return [];
+
+  const totalDays = Math.max(
+    0,
+    Math.round((end.getTime() - start.getTime()) / DAY_MS),
+  );
+  const rows: Row[] = [];
+  for (let i = 0; i <= totalDays; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const dateStr = isoDate(d);
+    const m = byDate.get(dateStr);
+    const row: Row = {
+      date: dateStr,
+      weightKg: m?.weightKg,
+      labels: m?.labels,
+      note: m?.note,
+      running: m?.running,
+      bodyFatPct: m?.bodyFatPct,
+      bmi: m?.bmi,
+      muscleKg: m?.muscleKg,
+      bmrKcal: m?.bmrKcal,
+      visceralFatLevel: m?.visceralFatLevel,
+      boneKg: m?.boneKg,
+    };
+    goals.forEach((goal, index) => {
+      const progress = progresses[index];
+      const goalStart = parseISO(goal.startDate);
+      const goalEnd = parseISO(goal.endDate);
+      if (!goalStart || !goalEnd || goalEnd < goalStart) return;
+      if (dateStr < goal.startDate || dateStr > goal.endDate) return;
+      if (progress?.startWeight == null) return;
+      const goalTotalDays = Math.max(
         1,
-        Math.round((end.getTime() - start.getTime()) / DAY_MS),
+        Math.round((goalEnd.getTime() - goalStart.getTime()) / DAY_MS),
       );
-      const rows: Row[] = [];
-      for (let i = 0; i <= totalDays; i++) {
-        const d = new Date(start);
-        d.setDate(start.getDate() + i);
-        const dateStr = isoDate(d);
-        const m = byDate.get(dateStr);
-        const ideal =
-          startWeight != null
-            ? startWeight - goal.targetKg * (i / totalDays)
-            : undefined;
-        rows.push({
-          date: dateStr,
-          weightKg: m?.weightKg,
-          idealWeight: ideal,
-          labels: m?.labels,
-          note: m?.note,
-          running: m?.running,
-          bodyFatPct: m?.bodyFatPct,
-          bmi: m?.bmi,
-          muscleKg: m?.muscleKg,
-          bmrKcal: m?.bmrKcal,
-          visceralFatLevel: m?.visceralFatLevel,
-          boneKg: m?.boneKg,
-        });
-      }
-      return rows;
-    }
+      const goalElapsedDays = Math.round(
+        (d.getTime() - goalStart.getTime()) / DAY_MS,
+      );
+      const value =
+        progress.startWeight - goal.targetKg * (goalElapsedDays / goalTotalDays);
+      const key = idealKey(index);
+      row[key] = value;
+      row.goalPaces = [
+        ...(row.goalPaces ?? []),
+        { label: `${index + 1}つ目の目標ペース`, value },
+      ];
+    });
+    rows.push(row);
   }
-
-  // 目標が無い、または期間が壊れている場合は測定日だけプロット
-  return measurements.map((m) => ({
-    date: m.date,
-    weightKg: m.weightKg,
-    labels: m.labels,
-    note: m.note,
-    running: m.running,
-    bodyFatPct: m.bodyFatPct,
-    bmi: m.bmi,
-    muscleKg: m.muscleKg,
-    bmrKcal: m.bmrKcal,
-    visceralFatLevel: m.visceralFatLevel,
-    boneKg: m.boneKg,
-  }));
+  return rows;
 }
 
 export function WeightChart({
   measurements,
-  goal,
-  startWeight,
+  goals = [],
+  progresses = [],
   onPointClick,
 }: Props) {
-  const data = buildRows(measurements, goal, startWeight ?? null);
+  const data = buildRows(measurements, goals, progresses);
 
   if (data.length === 0 || measurements.length === 0) {
     return (
@@ -126,7 +139,10 @@ export function WeightChart({
   const numeric: number[] = data.flatMap((r) => {
     const list: number[] = [];
     if (typeof r.weightKg === "number") list.push(r.weightKg);
-    if (typeof r.idealWeight === "number") list.push(r.idealWeight);
+    goals.forEach((_, index) => {
+      const value = r[idealKey(index)];
+      if (typeof value === "number") list.push(value);
+    });
     return list;
   });
   const min = Math.floor(Math.min(...numeric) - 0.5);
@@ -165,18 +181,32 @@ export function WeightChart({
             content={<DetailTooltip />}
             cursor={{ stroke: "rgba(10,10,10,0.2)", strokeDasharray: "2 4" }}
           />
-          {/* 理想ペース線 */}
-          <Line
-            type="linear"
-            dataKey="idealWeight"
-            stroke="rgba(10,10,10,0.35)"
-            strokeWidth={1}
-            strokeDasharray="3 4"
-            dot={false}
-            activeDot={false}
-            connectNulls
-            isAnimationActive={false}
-          />
+          {progresses.map((progress) =>
+            progress.achieved && progress.startDate && progress.endDate ? (
+              <ReferenceArea
+                key={`achieved-${progress.goalId ?? progress.startDate}`}
+                x1={progress.startDate}
+                x2={progress.endDate}
+                fill="#dff3e4"
+                fillOpacity={0.7}
+                strokeOpacity={0}
+              />
+            ) : null,
+          )}
+          {goals.map((goal, index) => (
+            <Line
+              key={goal.id ?? `${goal.startDate}-${goal.endDate}`}
+              type="linear"
+              dataKey={idealKey(index)}
+              stroke={progresses[index]?.achieved ? "#177245" : "rgba(10,10,10,0.35)"}
+              strokeWidth={1}
+              strokeDasharray="3 4"
+              dot={false}
+              activeDot={false}
+              connectNulls
+              isAnimationActive={false}
+            />
+          ))}
           {/* 実体重 */}
           <Line
             type="monotone"
@@ -203,6 +233,10 @@ type DotProps = {
   key?: string | number;
   index?: number;
 };
+
+function idealKey(index: number): `idealWeight${number}` {
+  return `idealWeight${index}`;
+}
 
 function CustomDot({
   cx,
@@ -253,16 +287,17 @@ function CustomDot({
 function DetailTooltip({ active, payload }: TooltipProps<number, string>) {
   if (!active || !payload || payload.length === 0) return null;
   const row = payload[0]!.payload as Row;
-  if (row.weightKg == null && row.idealWeight == null) return null;
   const rows: { label: string; value: string | undefined; unit?: string }[] = [];
   if (row.weightKg != null)
     rows.push({ label: "体重", value: fmt(row.weightKg, 1), unit: "kg" });
-  if (row.idealWeight != null)
+  row.goalPaces?.forEach((pace) =>
     rows.push({
-      label: "ペース",
-      value: fmt(row.idealWeight, 1),
+      label: pace.label,
+      value: fmt(pace.value, 1),
       unit: "kg",
-    });
+    }),
+  );
+  if (rows.length === 0) return null;
   if (row.bodyFatPct != null)
     rows.push({ label: "体脂肪率", value: fmt(row.bodyFatPct, 1), unit: "%" });
   if (row.bmi != null) rows.push({ label: "BMI", value: fmt(row.bmi, 1) });
